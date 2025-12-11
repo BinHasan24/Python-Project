@@ -33,7 +33,6 @@ class TaskNotFoundError(TaskManagerError):
 class TaskManager:
     """
     Manages all the tasks in our application.
-    
     This class is responsible for:
     - Creating new tasks
     - Storing tasks in a list
@@ -63,7 +62,6 @@ class TaskManager:
     def create_task(self, description: str) -> Task:
         """
         Create a new task and add it to our list
-        
         This method:
         1. Checks if description is empty
         2. Creates a new Task object
@@ -104,7 +102,6 @@ class TaskManager:
     def find_task_by_id(self, task_id: int) -> Optional[Task]:
         """
         Find a specific task by its ID.
-        
         loop through tasks and return the one with matching ID.
         If no task is found, we return None.
         
@@ -116,7 +113,7 @@ class TaskManager:
         """
         #loop through all tasks
         for task in self.tasks:
-            #check if this task has the ID we are looking for
+            #check if this task has the required ID 
             if task.task_id == task_id:
                 return task
         
@@ -126,11 +123,95 @@ class TaskManager:
     def is_empty(self) -> bool:
         """
         Check if we have any tasks
-        
         Returns:
             true if no tasks exist, false if we have at least one task
         """
         return len(self.tasks) == 0
+    
+    def edit_task(self, task_id: int, new_description: Optional[str] = None, 
+                  new_status: Optional[str] = None) -> Task:
+        """
+        Edit an existing task's description and/or status.
+        This method allows updating either the description, status, or both.
+        At least one of new_description or new_status must be provided.
+        Steps:
+        1. Find the task by ID
+        2. Check if task exists
+        3. Update description if provided
+        4. Update status if provided (uses property validation)
+        5. Save changes to file
+        
+        Args:
+            task_id: The ID of the task to edit
+            new_description: New description for the task (optional)
+            new_status: New status for the task (optional)
+            
+        Returns:
+            The updated Task object
+            
+        Raises:
+            TaskNotFoundError: If task with given ID does not exist
+            EmptyDescriptionError: If new_description is empty or just spaces
+            ValueError: If new_status is not valid (raised by Task.status property)
+        """
+        #1
+        task = self.find_task_by_id(task_id)
+        #2
+        if task is None:
+            raise TaskNotFoundError(f"Task with ID {task_id} not found!")
+        
+        #3
+        if new_description is not None:
+            #check if empty
+            if not new_description.strip():
+                raise EmptyDescriptionError("Task description cannot be empty!")
+            task.description = new_description
+        
+        #4
+        if new_status is not None:
+            task.status = new_status 
+        #5
+        self._save_tasks()
+        
+        return task
+    
+    def delete_task(self, task_id: int) -> Task:
+        """
+        Delete a task from the task list.
+        This method removes a task permanently from the list and saves
+        the changes to the file. The task cannot be recovered after deletion.
+        
+        Steps:
+        1. Find the task by ID
+        2. Check if task exists
+        3. Remove task from the list
+        4. Save changes to file
+        5. Return the deleted task (so UI can show confirmation)
+        
+        Args:
+            task_id: The ID of the task to delete
+            
+        Returns:
+            The deleted Task object (for confirmation message)
+            
+        Raises:
+            TaskNotFoundError: If task with given ID does not exist
+        """
+        #1
+        task = self.find_task_by_id(task_id)
+        
+        #2
+        if task is None:
+            raise TaskNotFoundError(f"Task with ID {task_id} not found!")
+        
+        #3
+        self.tasks.remove(task)
+        
+        #4
+        self._save_tasks()
+        
+        #5
+        return task
     
     def _save_tasks(self) -> None:
         """
@@ -154,7 +235,6 @@ class TaskManager:
     def _load_tasks(self) -> None:
         """
         Load tasks from JSON file when program starts.
-        
         If the file does not exist (first time running), that is okay -
         we just start with an empty list.
         """
